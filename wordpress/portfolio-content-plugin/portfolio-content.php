@@ -23,6 +23,7 @@ add_action('save_post_' . SHOW_POST_TYPE, __NAMESPACE__ . '\\save_show_meta');
 add_action('save_post_' . PAGE_POST_TYPE, __NAMESPACE__ . '\\save_page_meta');
 add_action('admin_enqueue_scripts', __NAMESPACE__ . '\\enqueue_admin_assets');
 add_action('admin_menu', __NAMESPACE__ . '\\register_settings_page');
+add_action('admin_notices', __NAMESPACE__ . '\\render_rebuild_paused_notice');
 add_action('rest_api_init', __NAMESPACE__ . '\\register_build_endpoint');
 add_action('send_headers', __NAMESPACE__ . '\\send_noindex_header');
 add_action('wp_head', __NAMESPACE__ . '\\print_noindex_meta');
@@ -92,7 +93,7 @@ function render_show_details_box(\WP_Post $post): void
     $show_date = get_post_meta($post->ID, 'show_date', true);
     $directors = get_post_meta($post->ID, 'directors', true);
     $companies = get_post_meta($post->ID, 'companies', true);
-    $role = get_post_meta($post->ID, 'role', true);
+    $roles = get_post_meta($post->ID, 'role', true);
     ?>
     <div class="portfolio-fields">
         <label>
@@ -108,8 +109,8 @@ function render_show_details_box(\WP_Post $post): void
             <textarea name="portfolio_companies" rows="4" required><?php echo esc_textarea($companies); ?></textarea>
         </label>
         <label>
-            <span>Role</span>
-            <input type="text" name="portfolio_role" value="<?php echo esc_attr($role); ?>" required>
+            <span>Roles, one per line</span>
+            <textarea name="portfolio_roles" rows="3" required><?php echo esc_textarea($roles); ?></textarea>
         </label>
     </div>
     <?php
@@ -214,7 +215,7 @@ function save_show_meta(int $post_id): void
     update_post_meta($post_id, 'show_date', sanitize_text_field($_POST['portfolio_show_date'] ?? ''));
     update_post_meta($post_id, 'directors', sanitize_textarea_field($_POST['portfolio_directors'] ?? ''));
     update_post_meta($post_id, 'companies', sanitize_textarea_field($_POST['portfolio_companies'] ?? ''));
-    update_post_meta($post_id, 'role', sanitize_text_field($_POST['portfolio_role'] ?? ''));
+    update_post_meta($post_id, 'role', sanitize_textarea_field($_POST['portfolio_roles'] ?? ''));
     update_post_meta($post_id, 'featured', isset($_POST['portfolio_featured']) ? '1' : '0');
     update_post_meta($post_id, 'tile_image_id', absint($_POST['portfolio_tile_image_id'] ?? 0));
     update_post_meta($post_id, 'blurb_markdown', wp_kses_post($_POST['portfolio_blurb_markdown'] ?? ''));
@@ -223,7 +224,7 @@ function save_show_meta(int $post_id): void
     save_seo_meta($post_id);
 
     if (get_post_status($post_id) === 'publish') {
-        trigger_rebuild('show_saved');
+        request_rebuild('show_saved');
     }
 }
 
@@ -237,7 +238,7 @@ function save_page_meta(int $post_id): void
     save_seo_meta($post_id);
 
     if (get_post_status($post_id) === 'publish') {
-        trigger_rebuild('page_saved');
+        request_rebuild('page_saved');
     }
 }
 
@@ -304,6 +305,9 @@ function render_settings_page(): void
         return;
     }
 
+    $manual_rebuild_message = '';
+    $manual_rebuild_error = '';
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         check_admin_referer('portfolio_settings_save');
         update_option('portfolio_homepage_hero_video_id', absint($_POST['portfolio_homepage_hero_video_id'] ?? 0));
@@ -313,15 +317,55 @@ function render_settings_page(): void
         update_option('portfolio_site_seo_title', sanitize_text_field($_POST['portfolio_site_seo_title'] ?? ''));
         update_option('portfolio_site_seo_description', sanitize_textarea_field($_POST['portfolio_site_seo_description'] ?? ''));
         update_option('portfolio_site_social_image_id', absint($_POST['portfolio_site_social_image_id'] ?? 0));
-        trigger_rebuild('settings_saved');
+        update_option('portfolio_auto_rebuild_enabled', isset($_POST['portfolio_auto_rebuild_enabled']) ? '1' : '0');
+
+        if (isset($_POST['portfolio_trigger_rebuild_now'])) {
+            delete_transient('portfolio_rebuild_recent');
+            if (trigger_rebuild('manual_rebuild', true)) {
+                set_content_dirty(false);
+                $manual_rebuild_message = 'Manual rebuild triggered.';
+            } else {
+                set_content_dirty(true);
+                $manual_rebuild_error = 'Manual rebuild failed. Check the GitHub token and workflow configuration.';
+            }
+        } else {
+            request_rebuild('settings_saved');
+        }
+
         echo '<div class="updated"><p>Settings saved.</p></div>';
+        if ($manual_rebuild_message) {
+            echo '<div class="updated"><p>' . esc_html($manual_rebuild_message) . '</p></div>';
+        }
+        if ($manual_rebuild_error) {
+            echo '<div class="error"><p>' . esc_html($manual_rebuild_error) . '</p></div>';
+        }
     }
+
+    $auto_rebuild_enabled = is_auto_rebuild_enabled();
+    $content_dirty = is_content_dirty();
+    $last_rebuild_at = (string) get_option('portfolio_last_rebuild_at', '');
 
     ?>
     <div class="wrap portfolio-settings">
         <h1>Portfolio Settings</h1>
         <form method="post">
             <?php wp_nonce_field('portfolio_settings_save'); ?>
+            <h2>Builds</h2>
+            <label class="portfolio-checkbox">
+                <input type="checkbox" name="portfolio_auto_rebuild_enabled" value="1" <?php checked($auto_rebuild_enabled); ?>>
+                <span>Automatically rebuild on publish/update</span>
+            </label>
+            <p>
+                <strong>Status:</strong>
+                <?php echo $content_dirty ? 'Unpublished changes pending.' : 'Site build is up to date.'; ?>
+                <?php if ($last_rebuild_at) : ?>
+                    Last rebuild triggered <?php echo esc_html($last_rebuild_at); ?> UTC.
+                <?php endif; ?>
+            </p>
+            <p>
+                <button type="submit" class="button button-secondary" name="portfolio_trigger_rebuild_now" value="1">Trigger rebuild now</button>
+            </p>
+
             <h2>Homepage Hero</h2>
             <?php render_attachment_picker('portfolio_homepage_hero_video_id', (int) get_option('portfolio_homepage_hero_video_id'), 'Hero video'); ?>
             <?php render_attachment_picker('portfolio_homepage_hero_poster_id', (int) get_option('portfolio_homepage_hero_poster_id'), 'Hero poster'); ?>
@@ -422,11 +466,30 @@ function get_build_token(): string
     return (string) getenv('PORTFOLIO_BUILD_TOKEN');
 }
 
-function trigger_rebuild(string $reason): void
+function request_rebuild(string $reason): void
+{
+    if (!is_auto_rebuild_enabled()) {
+        set_content_dirty(true);
+        return;
+    }
+
+    if (trigger_rebuild($reason)) {
+        set_content_dirty(false);
+        return;
+    }
+
+    set_content_dirty(true);
+}
+
+function trigger_rebuild(string $reason, bool $force = false): bool
 {
     $token = get_github_token();
-    if (!$token || get_transient('portfolio_rebuild_recent')) {
-        return;
+    if (!$token) {
+        return false;
+    }
+
+    if (!$force && get_transient('portfolio_rebuild_recent')) {
+        return true;
     }
 
     set_transient('portfolio_rebuild_recent', '1', 60);
@@ -435,7 +498,7 @@ function trigger_rebuild(string $reason): void
     $workflow = defined('PORTFOLIO_GITHUB_WORKFLOW') ? PORTFOLIO_GITHUB_WORKFLOW : 'deploy.yml';
     $ref = defined('PORTFOLIO_GITHUB_REF') ? PORTFOLIO_GITHUB_REF : 'main';
 
-    wp_remote_post("https://api.github.com/repos/{$repo}/actions/workflows/{$workflow}/dispatches", [
+    $response = wp_remote_post("https://api.github.com/repos/{$repo}/actions/workflows/{$workflow}/dispatches", [
         'timeout' => 10,
         'headers' => [
             'Accept' => 'application/vnd.github+json',
@@ -451,6 +514,18 @@ function trigger_rebuild(string $reason): void
             ],
         ]),
     ]);
+
+    if (is_wp_error($response)) {
+        return false;
+    }
+
+    $status = (int) wp_remote_retrieve_response_code($response);
+    if ($status >= 200 && $status < 300) {
+        update_option('portfolio_last_rebuild_at', gmdate('Y-m-d H:i:s'));
+        return true;
+    }
+
+    return false;
 }
 
 function get_github_token(): string
@@ -460,6 +535,35 @@ function get_github_token(): string
     }
 
     return (string) getenv('PORTFOLIO_GITHUB_TOKEN');
+}
+
+function is_auto_rebuild_enabled(): bool
+{
+    return get_option('portfolio_auto_rebuild_enabled', '1') === '1';
+}
+
+function is_content_dirty(): bool
+{
+    return get_option('portfolio_content_dirty', '0') === '1';
+}
+
+function set_content_dirty(bool $dirty): void
+{
+    update_option('portfolio_content_dirty', $dirty ? '1' : '0');
+}
+
+function render_rebuild_paused_notice(): void
+{
+    if (!current_user_can('manage_options') || is_auto_rebuild_enabled() || !is_content_dirty()) {
+        return;
+    }
+
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+    if (!$screen || !in_array($screen->id, [SHOW_POST_TYPE, PAGE_POST_TYPE, 'portfolio_page_portfolio-settings', 'toplevel_page_portfolio-settings', 'edit-' . SHOW_POST_TYPE, 'edit-' . PAGE_POST_TYPE], true)) {
+        return;
+    }
+
+    echo '<div class="notice notice-warning"><p>Portfolio rebuilds are paused. Trigger a rebuild from Portfolio Settings when your batch edits are done.</p></div>';
 }
 
 function build_payload(?\WP_REST_Request $request = null)
@@ -535,7 +639,7 @@ function build_shows(): array
             'showDate' => get_post_meta($post->ID, 'show_date', true),
             'directors' => lines_to_array(get_post_meta($post->ID, 'directors', true)),
             'companies' => lines_to_array(get_post_meta($post->ID, 'companies', true)),
-            'role' => get_post_meta($post->ID, 'role', true),
+            'roles' => lines_to_array(get_post_meta($post->ID, 'role', true)),
             'featured' => $featured,
             'menuOrder' => (int) $post->menu_order,
             'blurbMarkdown' => get_post_meta($post->ID, 'blurb_markdown', true),

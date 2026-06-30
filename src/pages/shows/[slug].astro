@@ -44,7 +44,7 @@ const caseStudy = show.caseStudyMarkdown ? await renderMarkdown(show.caseStudyMa
         </div>
         <div>
           <dt>Role</dt>
-          <dd>{show.role}</dd>
+          <dd>{show.roles.map((role) => <span>{role}</span>)}</dd>
         </div>
       </dl>
     </header>
@@ -123,6 +123,10 @@ const caseStudy = show.caseStudyMarkdown ? await renderMarkdown(show.caseStudyMa
   dd {
     line-height: 1.4;
     margin: 0;
+  }
+
+  dd span {
+    display: block;
   }
 
   .media-list {

@@ -37,7 +37,7 @@ const outro = data.site.resumeOutroMarkdown ? await renderMarkdown(data.site.res
                 <td>{show.directors.map((director) => <span>{director}</span>)}</td>
                 <td>{show.companies.map((company) => <span>{company}</span>)}</td>
                 <td>{formatShowDate(show.showDate)}</td>
-                <td>{show.role}</td>
+                <td>{show.roles.map((role) => <span>{role}</span>)}</td>
               </tr>
             ))
           }

@@ -106,6 +106,12 @@ CMS_BUILD_TOKEN=...
 
 For WordPress-triggered rebuilds, add a fine-grained GitHub PAT with Actions write access to `.tmp/secrets/github-actions-pat` or pass `PORTFOLIO_GITHUB_TOKEN` when running `install-wp-secrets.sh`.
 
+The Portfolio settings page includes rebuild controls:
+
+- `Automatically rebuild on publish/update`: when enabled, published content saves trigger GitHub Actions with a short debounce.
+- `Trigger rebuild now`: forces one workflow dispatch and clears the pending-changes flag.
+- When automatic rebuilds are disabled, saves mark content as dirty but do not dispatch GitHub Actions.
+
 ## GitHub Actions Setup
 
 Create/configure the repository, then set deploy secrets:
@@ -141,7 +147,7 @@ npm run deploy
 - Published show records appear on Resume.
 - Featured show records appear on the homepage and get public `/shows/{slug}/` pages.
 - Show title is the WordPress post title. Public slug is the WordPress post slug.
-- Required show fields: `showDate` (`YYYY-MM-DD`), directors list, companies list, and freeform role.
+- Required show fields: `showDate` (`YYYY-MM-DD`), directors list, companies list, and roles list.
 - Featured shows require a 4:3 tile image.
 - Featured ordering uses WordPress `menu_order` with Simple Page Ordering.
 - Show pages render a required blurb, ordered structured media, and optional text-only Markdown case study.

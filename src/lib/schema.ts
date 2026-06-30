@@ -48,7 +48,7 @@ export const ShowSchema = z.object({
   showDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   directors: z.array(z.string().min(1)).min(1),
   companies: z.array(z.string().min(1)).min(1),
-  role: z.string().min(1),
+  roles: z.array(z.string().min(1)).min(1),
   featured: z.boolean().default(false),
   menuOrder: z.number().int().optional(),
   blurbMarkdown: z.string().optional(),

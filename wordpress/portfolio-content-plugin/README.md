@@ -11,6 +11,7 @@ This plugin owns the WordPress-side content model for `portfolio-astro`.
 - Adds noindex headers/meta tags.
 - Redirects unauthenticated CMS frontend traffic to login.
 - Provides custom Markdown fields, basic Markdown preview, media list editing, and site settings.
+- Provides automatic rebuild pause/resume controls and a manual rebuild button.
 
 ## Expected Companion Plugins
 
