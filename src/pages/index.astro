@@ -1,0 +1,131 @@
+---
+import Nav from '@/components/Nav.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { formatShowDate, getPortfolioData, sortFeaturedShows } from '@/lib/content';
+
+const data = await getPortfolioData();
+const featuredShows = sortFeaturedShows(data.shows);
+const heroVideo = data.site.homepageHeroVideo;
+const title = data.site.seo?.title ?? 'Chris Uehlinger';
+const description = data.site.seo?.description;
+---
+
+<BaseLayout title={title} description={description} image={data.site.seo?.socialImage}>
+  <Nav />
+  <main>
+    <section class="hero" aria-label="Chris Uehlinger">
+      {
+        heroVideo && (
+          <>
+            <video autoplay muted loop playsinline poster={heroVideo.poster?.url} aria-hidden="true">
+              <source src={heroVideo.url} type={heroVideo.mimeType ?? 'video/mp4'} />
+            </video>
+            {heroVideo.poster && <img class="motion-fallback" src={heroVideo.poster.url} alt="" />}
+          </>
+        )
+      }
+      <h1>CHRIS UEHLINGER</h1>
+    </section>
+
+    <section class="section work-grid" aria-label="Featured work">
+      {
+        featuredShows.map((show) => (
+          <a class="show-tile" href={`/shows/${show.slug}/`}>
+            <img src={show.tileImage!.url} alt={show.tileImage!.alt} loading="lazy" />
+            <span class="show-meta">
+              <strong>{show.title}</strong>
+              <span>{show.companies.join(', ')}</span>
+              <span>{formatShowDate(show.showDate)} · {show.role}</span>
+            </span>
+          </a>
+        ))
+      }
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .hero {
+    align-items: center;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    min-height: min(92vh, 920px);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .hero video,
+  .motion-fallback {
+    height: 100%;
+    inset: 0;
+    object-fit: cover;
+    opacity: 0.72;
+    position: absolute;
+    width: 100%;
+  }
+
+  .motion-fallback {
+    display: none;
+  }
+
+  .hero h1 {
+    color: #fff;
+    font-family: Montserrat, system-ui, sans-serif;
+    font-size: clamp(2.4rem, 9vw, 8rem);
+    font-weight: 100;
+    letter-spacing: 0;
+    margin: 0;
+    position: relative;
+    text-align: center;
+    z-index: 2;
+  }
+
+  .work-grid {
+    display: grid;
+    gap: clamp(1rem, 2vw, 1.5rem);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  }
+
+  .show-tile {
+    background: var(--panel);
+    color: var(--fg);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-width: 0;
+    text-decoration: none;
+  }
+
+  .show-tile img {
+    aspect-ratio: 4 / 3;
+    height: auto;
+    object-fit: cover;
+    width: 100%;
+  }
+
+  .show-meta {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.85rem 0;
+  }
+
+  .show-meta span,
+  .show-meta strong {
+    font-size: 0.95rem;
+    line-height: 1.35;
+  }
+
+  .show-meta span {
+    color: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero video {
+      display: none;
+    }
+
+    .motion-fallback {
+      display: block;
+    }
+  }
+</style>

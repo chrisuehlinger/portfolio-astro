@@ -1,0 +1,32 @@
+---
+import Nav from '@/components/Nav.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getPortfolioData } from '@/lib/content';
+import { renderMarkdown } from '@/lib/markdown';
+
+const data = await getPortfolioData();
+const page = data.pages.find((entry) => entry.slug === 'about');
+const pageTitle = page?.title ?? 'About';
+const html = page ? await renderMarkdown(page.markdown) : '';
+---
+
+<BaseLayout title={page?.seo?.title ?? `${pageTitle} | Chris Uehlinger`} description={page?.seo?.description} image={page?.seo?.socialImage}>
+  <Nav />
+  <main class="section page">
+    <h1>{pageTitle}</h1>
+    {html && <div class="markdown" set:html={html} />}
+  </main>
+</BaseLayout>
+
+<style>
+  .page {
+    padding-top: clamp(6rem, 12vw, 10rem);
+  }
+
+  h1 {
+    font-size: clamp(2.2rem, 7vw, 5rem);
+    font-weight: 400;
+    letter-spacing: 0;
+    margin: 0 0 2rem;
+  }
+</style>

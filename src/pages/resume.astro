@@ -1,0 +1,102 @@
+---
+import Nav from '@/components/Nav.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { formatShowDate, getPortfolioData, sortShowsForResume } from '@/lib/content';
+import { renderMarkdown } from '@/lib/markdown';
+
+const data = await getPortfolioData();
+const shows = sortShowsForResume(data.shows);
+const intro = data.site.resumeIntroMarkdown ? await renderMarkdown(data.site.resumeIntroMarkdown) : '';
+const outro = data.site.resumeOutroMarkdown ? await renderMarkdown(data.site.resumeOutroMarkdown) : '';
+---
+
+<BaseLayout title="Resume | Chris Uehlinger" description={data.site.seo?.description} image={data.site.seo?.socialImage}>
+  <Nav />
+  <main class="section resume-page">
+    <h1>Resume</h1>
+    {intro && <div class="markdown intro" set:html={intro} />}
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Director</th>
+            <th>Company</th>
+            <th>Date</th>
+            <th>Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            shows.map((show) => (
+              <tr>
+                <td>
+                  {show.featured ? <a href={`/shows/${show.slug}/`}>{show.title}</a> : show.title}
+                </td>
+                <td>{show.directors.map((director) => <span>{director}</span>)}</td>
+                <td>{show.companies.map((company) => <span>{company}</span>)}</td>
+                <td>{formatShowDate(show.showDate)}</td>
+                <td>{show.role}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+
+    {outro && <div class="markdown outro" set:html={outro} />}
+  </main>
+</BaseLayout>
+
+<style>
+  .resume-page {
+    padding-top: clamp(6rem, 12vw, 10rem);
+  }
+
+  h1 {
+    font-size: clamp(2.2rem, 7vw, 5rem);
+    font-weight: 400;
+    letter-spacing: 0;
+    margin: 0 0 2rem;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    border-collapse: collapse;
+    min-width: 820px;
+    width: 100%;
+  }
+
+  th,
+  td {
+    border-bottom: 1px solid var(--line);
+    line-height: 1.4;
+    padding: 0.9rem 1rem 0.9rem 0;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  td span {
+    display: block;
+  }
+
+  .intro {
+    margin-bottom: 2rem;
+  }
+
+  .outro {
+    margin-top: 2rem;
+  }
+</style>

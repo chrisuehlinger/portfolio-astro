@@ -1,0 +1,30 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+}
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://chrisuehlinger.com');
+const description = Astro.props.description ?? '';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{Astro.props.title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={canonical.href} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={Astro.props.title} />
+    {description && <meta property="og:description" content={description} />}
+    {Astro.props.image && <meta property="og:image" content={Astro.props.image} />}
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

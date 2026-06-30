@@ -1,0 +1,80 @@
+.portfolio-fields {
+  display: grid;
+  gap: 1rem;
+  max-width: 860px;
+}
+
+.portfolio-fields.compact {
+  gap: 0.75rem;
+}
+
+.portfolio-fields label,
+.portfolio-settings label {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+}
+
+.portfolio-fields input[type="text"],
+.portfolio-fields input[type="date"],
+.portfolio-fields input[type="number"],
+.portfolio-fields textarea,
+.portfolio-settings input[type="text"],
+.portfolio-settings input[type="number"],
+.portfolio-settings textarea,
+.portfolio-media-row input,
+.portfolio-media-row select,
+.portfolio-media-row textarea {
+  max-width: 100%;
+  width: 100%;
+}
+
+.portfolio-checkbox {
+  align-items: center;
+  display: flex !important;
+  gap: 0.5rem !important;
+}
+
+.portfolio-checkbox input {
+  width: auto;
+}
+
+.portfolio-attachment-picker {
+  align-items: start;
+  grid-template-columns: minmax(12rem, 1fr) auto auto;
+}
+
+.portfolio-attachment-picker > span:first-child {
+  grid-column: 1 / -1;
+}
+
+.portfolio-attachment-preview img {
+  height: auto;
+  max-width: 120px;
+}
+
+.portfolio-media-list {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.portfolio-media-row {
+  border: 1px solid #ccd0d4;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.portfolio-media-row-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.portfolio-markdown-preview {
+  background: #fff;
+  border: 1px solid #dcdcde;
+  margin-top: 0.75rem;
+  min-height: 2rem;
+  padding: 0.75rem;
+}

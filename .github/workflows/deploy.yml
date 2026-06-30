@@ -1,0 +1,72 @@
+name: Build and deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: Reason for the manual or CMS-triggered rebuild
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required secrets
+        id: preflight
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          CMS_BUILD_ENDPOINT: ${{ secrets.CMS_BUILD_ENDPOINT }}
+          CMS_BUILD_TOKEN: ${{ secrets.CMS_BUILD_TOKEN }}
+          SITE_BUCKET: ${{ secrets.SITE_BUCKET }}
+          SITE_CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.SITE_CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          if [[ -z "$AWS_ROLE_ARN" || -z "$CMS_BUILD_ENDPOINT" || -z "$CMS_BUILD_TOKEN" || -z "$SITE_BUCKET" || -z "$SITE_CLOUDFRONT_DISTRIBUTION_ID" ]]; then
+            echo "Deployment secrets are not configured yet; skipping."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out repository
+        if: steps.preflight.outputs.ready == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        if: steps.preflight.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.preflight.outputs.ready == 'true'
+        run: npm ci
+
+      - name: Build
+        if: steps.preflight.outputs.ready == 'true'
+        env:
+          CMS_BUILD_ENDPOINT: ${{ secrets.CMS_BUILD_ENDPOINT }}
+          CMS_BUILD_TOKEN: ${{ secrets.CMS_BUILD_TOKEN }}
+        run: npm run build
+
+      - name: Configure AWS credentials
+        if: steps.preflight.outputs.ready == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Deploy
+        if: steps.preflight.outputs.ready == 'true'
+        env:
+          SITE_BUCKET: ${{ secrets.SITE_BUCKET }}
+          SITE_CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.SITE_CLOUDFRONT_DISTRIBUTION_ID }}
+        run: npm run deploy

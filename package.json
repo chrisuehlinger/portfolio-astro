@@ -1,0 +1,27 @@
+{
+  "name": "portfolio-astro",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "deploy": "infra/scripts/deploy-site.sh",
+    "test:smoke": "playwright test"
+  },
+  "dependencies": {
+    "@astrojs/check": "latest",
+    "@fontsource/montserrat": "^5.2.8",
+    "astro": "latest",
+    "marked": "latest",
+    "sanitize-html": "latest",
+    "typescript": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest",
+    "@types/node": "latest",
+    "@types/sanitize-html": "latest"
+  }
+}

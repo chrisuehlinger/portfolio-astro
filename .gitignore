@@ -1,0 +1,25 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+.astro/
+coverage/
+playwright-report/
+test-results/
+
+# OpenTofu
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Local script working directories
+.tmp/

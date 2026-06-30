@@ -1,0 +1,68 @@
+---
+import type { MediaItem } from '@/lib/schema';
+
+interface Props {
+  item: MediaItem;
+}
+
+const { item } = Astro.props;
+---
+
+{
+  item.type === 'image' && (
+    <figure class="media-item">
+      <img
+        src={item.url}
+        alt={item.alt}
+        width={item.width}
+        height={item.height}
+        srcset={item.srcset}
+        sizes={item.sizes ?? '(min-width: 960px) 920px, 100vw'}
+        loading="lazy"
+      />
+      {item.caption && <figcaption>{item.caption}</figcaption>}
+    </figure>
+  )
+}
+
+{
+  item.type === 'video' && (
+    <figure class="media-item">
+      <video controls preload="metadata" poster={item.poster?.url} width={item.width} height={item.height}>
+        <source src={item.url} type={item.mimeType ?? 'video/mp4'} />
+      </video>
+      {item.caption && <figcaption>{item.caption}</figcaption>}
+    </figure>
+  )
+}
+
+{
+  item.type === 'embed' && (
+    <figure class="media-item embed">
+      <a href={item.url} rel="noopener noreferrer" target="_blank">{item.title ?? item.url}</a>
+      {item.caption && <figcaption>{item.caption}</figcaption>}
+    </figure>
+  )
+}
+
+<style>
+  .media-item {
+    margin: 0;
+  }
+
+  .media-item + .media-item {
+    margin-top: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  figcaption {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-top: 0.65rem;
+  }
+
+  .embed {
+    border-top: 1px solid var(--line);
+    padding-top: 1rem;
+  }
+</style>
