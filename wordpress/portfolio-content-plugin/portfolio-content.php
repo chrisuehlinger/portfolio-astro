@@ -508,7 +508,7 @@ function build_pages(): array
         return array_filter([
             'id' => $post->ID,
             'slug' => $post->post_name,
-            'title' => get_the_title($post),
+            'title' => decoded_title($post),
             'markdown' => get_post_meta($post->ID, 'markdown', true),
             'seo' => seo_for_post($post->ID),
         ], __NAMESPACE__ . '\\not_empty_value');
@@ -531,7 +531,7 @@ function build_shows(): array
         return array_filter([
             'id' => $post->ID,
             'slug' => $post->post_name,
-            'title' => get_the_title($post),
+            'title' => decoded_title($post),
             'showDate' => get_post_meta($post->ID, 'show_date', true),
             'directors' => lines_to_array(get_post_meta($post->ID, 'directors', true)),
             'companies' => lines_to_array(get_post_meta($post->ID, 'companies', true)),
@@ -660,6 +660,11 @@ function seo_from_values(string $title, string $description, int $social_image_i
 function lines_to_array(string $value): array
 {
     return array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $value))));
+}
+
+function decoded_title(\WP_Post $post): string
+{
+    return html_entity_decode(get_the_title($post), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
 function not_empty_value($value): bool
