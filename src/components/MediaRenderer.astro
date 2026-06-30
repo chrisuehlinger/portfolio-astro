@@ -51,7 +51,12 @@ const { item } = Astro.props;
   }
 
   .media-item + .media-item {
-    margin-top: clamp(1.5rem, 4vw, 3rem);
+    margin-top: clamp(1rem, 2.5vw, 2rem);
+  }
+
+  .media-item video {
+    height: auto;
+    width: 100%;
   }
 
   figcaption {
