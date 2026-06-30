@@ -24,12 +24,16 @@ add_action('save_post_' . PAGE_POST_TYPE, __NAMESPACE__ . '\\save_page_meta');
 add_action('admin_enqueue_scripts', __NAMESPACE__ . '\\enqueue_admin_assets');
 add_action('admin_menu', __NAMESPACE__ . '\\register_settings_page');
 add_action('admin_notices', __NAMESPACE__ . '\\render_rebuild_paused_notice');
+add_action('pre_get_posts', __NAMESPACE__ . '\\sort_show_admin_columns');
 add_action('rest_api_init', __NAMESPACE__ . '\\register_build_endpoint');
 add_action('send_headers', __NAMESPACE__ . '\\send_noindex_header');
 add_action('wp_head', __NAMESPACE__ . '\\print_noindex_meta');
 add_action('template_redirect', __NAMESPACE__ . '\\require_login_for_cms_frontend');
 add_filter('pre_option_blog_public', '__return_zero');
 add_filter('rest_authentication_errors', __NAMESPACE__ . '\\restrict_public_rest_api');
+add_filter('manage_' . SHOW_POST_TYPE . '_posts_columns', __NAMESPACE__ . '\\show_admin_columns');
+add_action('manage_' . SHOW_POST_TYPE . '_posts_custom_column', __NAMESPACE__ . '\\render_show_admin_column', 10, 2);
+add_filter('manage_edit-' . SHOW_POST_TYPE . '_sortable_columns', __NAMESPACE__ . '\\show_sortable_admin_columns');
 
 function register_post_types(): void
 {
@@ -74,6 +78,73 @@ function register_meta_boxes(): void
     add_meta_box('portfolio_show_markdown', 'Case Study Markdown', __NAMESPACE__ . '\\render_show_markdown_box', SHOW_POST_TYPE, 'normal', 'default');
     add_meta_box('portfolio_page_markdown', 'Markdown', __NAMESPACE__ . '\\render_page_markdown_box', PAGE_POST_TYPE, 'normal', 'high');
     add_meta_box('portfolio_seo', 'SEO', __NAMESPACE__ . '\\render_seo_box', [SHOW_POST_TYPE, PAGE_POST_TYPE], 'side', 'default');
+}
+
+function show_admin_columns(array $columns): array
+{
+    $new_columns = [];
+
+    foreach ($columns as $key => $label) {
+        $new_columns[$key] = $label;
+
+        if ($key === 'title') {
+            $new_columns['show_date'] = 'Show Date';
+            $new_columns['featured'] = 'Featured';
+        }
+    }
+
+    return $new_columns;
+}
+
+function render_show_admin_column(string $column, int $post_id): void
+{
+    if ($column === 'show_date') {
+        $show_date = (string) get_post_meta($post_id, 'show_date', true);
+        echo esc_html(format_admin_show_date($show_date));
+        return;
+    }
+
+    if ($column === 'featured') {
+        echo get_post_meta($post_id, 'featured', true) ? 'Yes' : 'No';
+    }
+}
+
+function show_sortable_admin_columns(array $columns): array
+{
+    $columns['show_date'] = 'show_date';
+    $columns['featured'] = 'featured';
+
+    return $columns;
+}
+
+function sort_show_admin_columns(\WP_Query $query): void
+{
+    if (!is_admin() || !$query->is_main_query() || $query->get('post_type') !== SHOW_POST_TYPE) {
+        return;
+    }
+
+    $orderby = $query->get('orderby');
+    if ($orderby === 'show_date') {
+        $query->set('meta_key', 'show_date');
+        $query->set('orderby', 'meta_value');
+        $query->set('meta_type', 'DATE');
+        return;
+    }
+
+    if ($orderby === 'featured') {
+        $query->set('meta_key', 'featured');
+        $query->set('orderby', 'meta_value_num');
+    }
+}
+
+function format_admin_show_date(string $show_date): string
+{
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $show_date)) {
+        return '';
+    }
+
+    $timestamp = strtotime($show_date . ' 00:00:00 UTC');
+    return $timestamp ? gmdate('M j, Y', $timestamp) : $show_date;
 }
 
 function enqueue_admin_assets(string $hook): void
