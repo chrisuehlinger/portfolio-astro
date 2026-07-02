@@ -66,10 +66,22 @@ if [[ -z "$php_ini" || "$php_ini" == "(none)" || ! -f "$php_ini" ]]; then
   exit 1
 fi
 
-backup="${php_ini}.bak-before-upload-limits"
-if [[ ! -f "$backup" ]]; then
-  sudo cp "$php_ini" "$backup"
-fi
+php_ini_files=("$php_ini")
+for candidate in /opt/bitnami/php/etc/php.ini /opt/bitnami/php/lib/php.ini; do
+  if [[ -f "$candidate" ]]; then
+    already_listed=false
+    for listed in "${php_ini_files[@]}"; do
+      if [[ "$listed" == "$candidate" ]]; then
+        already_listed=true
+        break
+      fi
+    done
+
+    if [[ "$already_listed" == false ]]; then
+      php_ini_files+=("$candidate")
+    fi
+  fi
+done
 
 set_ini_value() {
   local key="$1"
@@ -83,10 +95,20 @@ set_ini_value() {
   fi
 }
 
-set_ini_value "upload_max_filesize" "$UPLOAD_MAX_FILESIZE" "$php_ini"
-set_ini_value "post_max_size" "$POST_MAX_SIZE" "$php_ini"
+for ini_file in "${php_ini_files[@]}"; do
+  backup="${ini_file}.bak-before-upload-limits"
+  if [[ ! -f "$backup" ]]; then
+    sudo cp "$ini_file" "$backup"
+  fi
+
+  set_ini_value "upload_max_filesize" "$UPLOAD_MAX_FILESIZE" "$ini_file"
+  set_ini_value "post_max_size" "$POST_MAX_SIZE" "$ini_file"
+done
 
 sudo "$CTL_SCRIPT" restart php-fpm apache >/dev/null
+
+echo "Updated PHP ini files:"
+printf '  %s\n' "${php_ini_files[@]}"
 
 sudo "$PHP_BIN" -i | awk -F'=> ' '
   /upload_max_filesize|post_max_size/ {
