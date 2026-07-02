@@ -82,6 +82,7 @@ The `main` stack also creates a first-time placeholder `index.html` from `infra/
 - `infra/scripts/install-wp-plugin.sh`: installs/updates the custom WordPress plugin and activates WP Offload Media Lite and Simple Page Ordering.
 - `infra/scripts/install-wp-secrets.sh`: generates/installs CMS-side secrets and WordPress media IAM keys without storing secret values in OpenTofu state.
 - `infra/scripts/configure-cms-https.sh`: opens the Bitnami HTTPS tool over SSH with the correct values documented in the prompt output.
+- `infra/scripts/configure-cms-upload-limits.sh`: sets Bitnami PHP upload limits for large WordPress media uploads.
 - `infra/scripts/configure-github-secrets.sh`: configures GitHub repository secrets from OpenTofu outputs and the local ignored CMS token.
 - `infra/scripts/deploy-site.sh`: syncs `dist/` to the site bucket and invalidates the site CloudFront distribution.
 
@@ -95,7 +96,10 @@ After `main` is applied, install the CMS plugin and server-side constants:
 infra/scripts/install-wp-plugin.sh
 infra/scripts/install-wp-secrets.sh
 infra/scripts/configure-cms-https.sh
+infra/scripts/configure-cms-upload-limits.sh
 ```
+
+`configure-cms-upload-limits.sh` defaults to `upload_max_filesize=1024M` and `post_max_size=1100M`. Override with `CMS_UPLOAD_MAX_FILESIZE` and `CMS_POST_MAX_SIZE` if needed.
 
 The build endpoint is authenticated with `PORTFOLIO_BUILD_TOKEN`. Astro sends the token in a POST JSON body to avoid Apache header forwarding edge cases:
 
